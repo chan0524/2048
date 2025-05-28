@@ -1,4 +1,4 @@
-// React 2048 Game (AdSense Web + Supabase 랭킹 연동)
+// React 2048 Game (정상 동작 복원 버전)
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import AdBlock from "./components/AdBlock";
@@ -6,8 +6,9 @@ import supabase from './dbClient';
 import { fetchRanking } from './fetchRanking';
 
 const SIZE = 4;
+
 const getInitialGrid = () => {
-  const grid = Array(SIZE).fill(null).map(() => Array(SIZE).fill(0));
+  const grid = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
   addNumber(grid);
   addNumber(grid);
   return grid;
@@ -38,87 +39,88 @@ const isGameOver = (grid) => {
   return true;
 };
 
-const AdBanner = () => {
-  useEffect(() => {
-    try {
-      if (window.adsbygoogle && Array.isArray(window.adsbygoogle)) {
-        window.adsbygoogle.push({});
-      }
-    } catch (e) {
-      console.error("AdSense error:", e);
+const combine = (arr) => {
+  let newArr = arr.filter(v => v !== 0);
+  let scoreGained = 0;
+  for (let i = 0; i < newArr.length - 1; i++) {
+    if (newArr[i] === newArr[i + 1]) {
+      newArr[i] *= 2;
+      scoreGained += newArr[i];
+      newArr[i + 1] = 0;
     }
-  }, []);
-
-  return (
-    <ins className="adsbygoogle"
-      style={{ display: "block" }}
-      data-ad-client="ca-pub-6508965231698296"
-      data-ad-slot="9650293147"
-      data-ad-format="auto"
-      data-full-width-responsive="true"></ins>
-  );
+  }
+  newArr = newArr.filter(v => v !== 0);
+  while (newArr.length < SIZE) newArr.push(0);
+  return { combined: newArr, scoreGained };
 };
 
 const App = () => {
   const [grid, setGrid] = useState(getInitialGrid);
   const [score, setScore] = useState(0);
   const [isOver, setIsOver] = useState(false);
-  const [showMain, setShowMain] = useState(true);
-  const [scoreHistory, setScoreHistory] = useState(() => {
-    return JSON.parse(localStorage.getItem("scoreHistory")) || [];
-  });
-  const [restartCount, setRestartCount] = useState(0);
   const [nickname, setNickname] = useState("");
   const [ranking, setRanking] = useState([]);
 
-  let touchStartX = 0;
-  let touchStartY = 0;
-
-  const handleKeyDown = (e) => {
-    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-    e.preventDefault();
-    if (!isOver) handleMove(e.key);
-  };
-
-  const handleTouchStart = (e) => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (isOver) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
-    if (Math.max(absX, absY) > 30) {
-      if (absX > absY) {
-        handleMove(dx > 0 ? "ArrowRight" : "ArrowLeft");
-      } else {
-        handleMove(dy > 0 ? "ArrowDown" : "ArrowUp");
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (isOver) return;
+      const key = e.key;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+        e.preventDefault();
+        move(key);
       }
-    }
-  };
+    };
+    window.addEventListener("keydown", handleKey);
+    fetchRanking().then(setRanking);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [grid, isOver]);
 
-  const handleMove = (direction) => {
+  const move = (direction) => {
     let newGrid = cloneGrid(grid);
     let moved = false;
-    if (direction === "ArrowLeft") moved = moveLeft(newGrid);
-    else if (direction === "ArrowRight") moved = moveRight(newGrid);
-    else if (direction === "ArrowUp") moved = moveUp(newGrid);
-    else if (direction === "ArrowDown") moved = moveDown(newGrid);
+    let gained = 0;
+
+    if (direction === "ArrowLeft") {
+      for (let r = 0; r < SIZE; r++) {
+        const { combined, scoreGained } = combine(newGrid[r]);
+        if (JSON.stringify(combined) !== JSON.stringify(newGrid[r])) moved = true;
+        newGrid[r] = combined;
+        gained += scoreGained;
+      }
+    } else if (direction === "ArrowRight") {
+      for (let r = 0; r < SIZE; r++) {
+        const reversed = [...newGrid[r]].reverse();
+        const { combined, scoreGained } = combine(reversed);
+        const restored = combined.reverse();
+        if (JSON.stringify(restored) !== JSON.stringify(newGrid[r])) moved = true;
+        newGrid[r] = restored;
+        gained += scoreGained;
+      }
+    } else if (direction === "ArrowUp") {
+      for (let c = 0; c < SIZE; c++) {
+        const col = newGrid.map(row => row[c]);
+        const { combined, scoreGained } = combine(col);
+        for (let r = 0; r < SIZE; r++) newGrid[r][c] = combined[r];
+        if (JSON.stringify(col) !== JSON.stringify(combined)) moved = true;
+        gained += scoreGained;
+      }
+    } else if (direction === "ArrowDown") {
+      for (let c = 0; c < SIZE; c++) {
+        const col = newGrid.map(row => row[c]).reverse();
+        const { combined, scoreGained } = combine(col);
+        const restored = combined.reverse();
+        for (let r = 0; r < SIZE; r++) newGrid[r][c] = restored[r];
+        if (JSON.stringify(newGrid.map(row => row[c])) !== JSON.stringify(restored)) moved = true;
+        gained += scoreGained;
+      }
+    }
 
     if (moved) {
       addNumber(newGrid);
       setGrid(newGrid);
+      setScore(prev => prev + gained);
       if (isGameOver(newGrid)) {
         setIsOver(true);
-
-        const newHistory = [...scoreHistory, score].sort((a, b) => b - a).slice(0, 5);
-        setScoreHistory(newHistory);
-        localStorage.setItem("scoreHistory", JSON.stringify(newHistory));
-
         if (nickname.trim()) {
           supabase.from("scores").insert([{ nickname, score }]);
         }
@@ -126,162 +128,27 @@ const App = () => {
     }
   };
 
-  useEffect(() => {
-    document.documentElement.style.scrollBehavior = "smooth";
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("touchstart", handleTouchStart);
-    window.addEventListener("touchend", handleTouchEnd);
-    fetchRanking().then(setRanking);
-    return () => {
-      document.body.style.overflow = "auto";
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, []);
-
-  const combineRow = (row) => {
-    let scoreGained = 0;
-    row = row.filter((v) => v !== 0);
-    for (let i = 0; i < row.length - 1; i++) {
-      if (row[i] === row[i + 1]) {
-        row[i] *= 2;
-        scoreGained += row[i];
-        row[i + 1] = 0;
-      }
-    }
-    row = row.filter((v) => v !== 0);
-    while (row.length < SIZE) row.push(0);
-    return { row, scoreGained };
-  };
-
-  const moveLeft = (grid) => {
-    let moved = false;
-    let totalScore = 0;
-    for (let r = 0; r < SIZE; r++) {
-      const { row, scoreGained } = combineRow(grid[r]);
-      if (JSON.stringify(row) !== JSON.stringify(grid[r])) moved = true;
-      grid[r] = row;
-      totalScore += scoreGained;
-    }
-    setScore((s) => s + totalScore);
-    return moved;
-  };
-
-  const moveRight = (grid) => {
-    for (let r = 0; r < SIZE; r++) grid[r].reverse();
-    let moved = moveLeft(grid);
-    for (let r = 0; r < SIZE; r++) grid[r].reverse();
-    return moved;
-  };
-
-  const moveUp = (grid) => {
-    let moved = false;
-    let totalScore = 0;
-    for (let c = 0; c < SIZE; c++) {
-      let col = grid.map((row) => row[c]);
-      const { row: newCol, scoreGained } = combineRow(col);
-      if (JSON.stringify(newCol) !== JSON.stringify(col)) moved = true;
-      for (let r = 0; r < SIZE; r++) grid[r][c] = newCol[r];
-      totalScore += scoreGained;
-    }
-    setScore((s) => s + totalScore);
-    return moved;
-  };
-
-  const moveDown = (grid) => {
-    let moved = false;
-    let totalScore = 0;
-    for (let c = 0; c < SIZE; c++) {
-      let col = grid.map((row) => row[c]).reverse();
-      const { row: newCol, scoreGained } = combineRow(col);
-      newCol.reverse();
-      if (JSON.stringify(newCol) !== JSON.stringify(grid.map((row) => row[c]))) moved = true;
-      for (let r = 0; r < SIZE; r++) grid[r][c] = newCol[r];
-      totalScore += scoreGained;
-    }
-    setScore((s) => s + totalScore);
-    return moved;
-  };
-
-  const startGame = () => {
-    if ((restartCount + 1) % 2 === 0) {
-      alert("[광고] 전체광고가 여기에 들어가기 있습니다.");
-    }
-    setRestartCount(restartCount + 1);
-    setGrid(getInitialGrid());
-    setScore(0);
-    setIsOver(false);
-    setShowMain(false);
-  };
-
-  const goToMain = () => {
-    setShowMain(true);
-  };
-
-  if (showMain) {
-    return (
-      <div className="game-container">
-        <h1>2048 Game</h1>
-        <AdBlock slot="7685279248" />
-
-        <input
-          type="text"
-          placeholder="닉네임 입력"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={20}
-          style={{ marginBottom: "10px", padding: "5px" }}
-        />
-
-        <button onClick={startGame}>Start Game</button>
-
-        <h2>Top Scores</h2>
-        <ul>
-          {ranking.map((entry, i) => (
-            <li key={i}>#{i + 1}: {entry.nickname} - {entry.score}</li>
-          ))}
-        </ul>
-
-        <AdBanner />
-      </div>
-    );
-  }
-
   return (
     <div className="game-container">
       <h1>2048 Game</h1>
+      <input
+        type="text"
+        placeholder="닉네임"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        style={{ marginBottom: 10 }}
+      />
       <div className="score">Score: {score}</div>
       <div className="grid">
-        <AdBlock slot="1914077817" />
-        {grid.map((row, rowIndex) => (
-          <div className="row" key={rowIndex}>
-            {row.map((cell, colIndex) => (
-              <div className="cell" key={colIndex}>
-                {cell !== 0 ? cell : ""}
-              </div>
+        {grid.map((row, i) => (
+          <div className="row" key={i}>
+            {row.map((cell, j) => (
+              <div className="cell" key={j}>{cell !== 0 ? cell : ""}</div>
             ))}
           </div>
         ))}
       </div>
-      <div style={{ marginTop: '10px' }}>
-        {!isOver && (
-          <>
-            <button onClick={startGame}>Restart</button>
-            <button onClick={goToMain} style={{ marginLeft: '10px' }}>Main</button>
-            <AdBlock slot="9650293147" />
-          </>
-        )}
-        {isOver && (
-          <div className="game-over">
-            <h2>Game Over!</h2>
-            <button onClick={startGame}>Restart</button>
-            <button onClick={goToMain}>Main</button>
-          </div>
-        )}
-      </div>
-      <AdBanner />
+      {isOver && <h2>Game Over</h2>}
     </div>
   );
 };
