@@ -58,6 +58,9 @@ const Home = () => {
 };
 
 export default Home;
+
+
+export default Home;
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../dbClient";
