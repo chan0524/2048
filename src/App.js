@@ -1,8 +1,7 @@
-import AdBlock from "./components/AdBlock";
-
 // React 2048 Game (AdSense Web 적용)
 import React, { useEffect, useState } from "react";
 import "./App.css";
+import AdBlock from "./components/AdBlock";
 
 const SIZE = 4;
 const getInitialGrid = () => {
@@ -118,10 +117,12 @@ const App = () => {
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = "smooth";
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("touchstart", handleTouchStart);
     window.addEventListener("touchend", handleTouchEnd);
     return () => {
+      document.body.style.overflow = "auto";
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchend", handleTouchEnd);
@@ -208,7 +209,6 @@ const App = () => {
       <div className="game-container">
         <h1>2048 Game</h1>
         <AdBlock slot="7685279248" />
-
         <button onClick={startGame}>Start Game</button>
         <h2>Top Scores</h2>
         <ul>
@@ -227,7 +227,6 @@ const App = () => {
       <div className="score">Score: {score}</div>
       <div className="grid">
         <AdBlock slot="1914077817" />
-
         {grid.map((row, rowIndex) => (
           <div className="row" key={rowIndex}>
             {row.map((cell, colIndex) => (
@@ -244,7 +243,6 @@ const App = () => {
             <button onClick={startGame}>Restart</button>
             <button onClick={goToMain} style={{ marginLeft: '10px' }}>Main</button>
             <AdBlock slot="9650293147" />
-
           </>
         )}
         {isOver && (
