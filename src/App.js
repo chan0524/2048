@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import AdBlock from "./components/AdBlock";
-import { supabase } from "./SupabaseClient";
+import supabase from './dbClient'
 import fetchRanking from "./fetchRanking";
 
 const SIZE = 4;
