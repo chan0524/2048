@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient'
+import supabase from "./supabaseClient";
 
 export const submitScore = async (nickname, score) => {
   const { data, error } = await supabase.from('scores').insert([
