@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import Game from "./components/Game";
 
-const App = () => {
+function App() {
   return (
     <Router>
       <Routes>
@@ -12,15 +12,14 @@ const App = () => {
       </Routes>
     </Router>
   );
-};
+}
 
 export default App;
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRanking } from "../fetchRanking";
 
-const Home = () => {
+function Home() {
   const [nickname, setNickname] = useState("");
   const [ranking, setRanking] = useState([]);
   const navigate = useNavigate();
@@ -56,10 +55,7 @@ const Home = () => {
       </ol>
     </div>
   );
-};
-
-export default Home;
-
+}
 
 export default Home;
 import React, { useEffect, useState, useRef } from "react";
@@ -68,15 +64,15 @@ import supabase from "../dbClient";
 
 const SIZE = 4;
 
-const getInitialGrid = () => {
+function getInitialGrid() {
   const grid = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
   addNumber(grid);
   addNumber(grid);
   return grid;
-};
+}
 
-const addNumber = (grid) => {
-  let empty = [];
+function addNumber(grid) {
+  const empty = [];
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (grid[r][c] === 0) empty.push({ r, c });
@@ -85,11 +81,13 @@ const addNumber = (grid) => {
   if (empty.length === 0) return;
   const { r, c } = empty[Math.floor(Math.random() * empty.length)];
   grid[r][c] = Math.random() < 0.9 ? 2 : 4;
-};
+}
 
-const cloneGrid = (grid) => grid.map((row) => [...row]);
+function cloneGrid(grid) {
+  return grid.map((row) => [...row]);
+}
 
-const isGameOver = (grid) => {
+function isGameOver(grid) {
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (grid[r][c] === 0) return false;
@@ -98,10 +96,10 @@ const isGameOver = (grid) => {
     }
   }
   return true;
-};
+}
 
-const combine = (arr) => {
-  let newArr = arr.filter(v => v !== 0);
+function combine(arr) {
+  let newArr = arr.filter((v) => v !== 0);
   let scoreGained = 0;
   for (let i = 0; i < newArr.length - 1; i++) {
     if (newArr[i] === newArr[i + 1]) {
@@ -110,12 +108,12 @@ const combine = (arr) => {
       newArr[i + 1] = 0;
     }
   }
-  newArr = newArr.filter(v => v !== 0);
+  newArr = newArr.filter((v) => v !== 0);
   while (newArr.length < SIZE) newArr.push(0);
   return { combined: newArr, scoreGained };
-};
+}
 
-const Game = () => {
+function Game() {
   const location = useLocation();
   const navigate = useNavigate();
   const nickname = location.state?.nickname || "";
@@ -125,7 +123,6 @@ const Game = () => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // 자동 포커스 (방향키 문제 해결)
     containerRef.current?.focus();
   }, []);
 
@@ -208,7 +205,7 @@ const Game = () => {
       className="game-container"
       ref={containerRef}
       tabIndex={0}
-      style={{ outline: "none" }} // 포커스 표시 제거
+      style={{ outline: "none" }}
     >
       <h1>2048 Game</h1>
       <div className="score">Score: {score}</div>
@@ -228,6 +225,6 @@ const Game = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Game;
