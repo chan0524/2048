@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import AdBlock from "./components/AdBlock";
-import supabase from './dbClient'
-import { fetchRanking } from './fetchRanking'
+import supabase from './dbClient';
+import { fetchRanking } from './fetchRanking';
 
 const SIZE = 4;
 const getInitialGrid = () => {
@@ -75,6 +75,8 @@ const App = () => {
   let touchStartY = 0;
 
   const handleKeyDown = (e) => {
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault();
     if (!isOver) handleMove(e.key);
   };
 
@@ -176,32 +178,36 @@ const App = () => {
 
   const moveUp = (grid) => {
     let moved = false;
+    let totalScore = 0;
     for (let c = 0; c < SIZE; c++) {
       let col = grid.map((row) => row[c]);
       const { row: newCol, scoreGained } = combineRow(col);
       if (JSON.stringify(newCol) !== JSON.stringify(col)) moved = true;
       for (let r = 0; r < SIZE; r++) grid[r][c] = newCol[r];
-      setScore((s) => s + scoreGained);
+      totalScore += scoreGained;
     }
+    setScore((s) => s + totalScore);
     return moved;
   };
 
   const moveDown = (grid) => {
     let moved = false;
+    let totalScore = 0;
     for (let c = 0; c < SIZE; c++) {
       let col = grid.map((row) => row[c]).reverse();
       const { row: newCol, scoreGained } = combineRow(col);
       newCol.reverse();
       if (JSON.stringify(newCol) !== JSON.stringify(grid.map((row) => row[c]))) moved = true;
       for (let r = 0; r < SIZE; r++) grid[r][c] = newCol[r];
-      setScore((s) => s + scoreGained);
+      totalScore += scoreGained;
     }
+    setScore((s) => s + totalScore);
     return moved;
   };
 
   const startGame = () => {
     if ((restartCount + 1) % 2 === 0) {
-      alert("[광고] 전체광고가 여기에 들어갈 수 있습니다.");
+      alert("[광고] 전체광고가 여기에 들어가기 있습니다.");
     }
     setRestartCount(restartCount + 1);
     setGrid(getInitialGrid());
