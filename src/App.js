@@ -1,6 +1,9 @@
-// React 2048 Game (AdSense Web 적용)
+// React 2048 Game (AdSense Web + Supabase 랭킹 연동)
 import React, { useEffect, useState } from "react";
 import "./App.css";
+import AdBlock from "./components/AdBlock";
+import { supabase } from "./supabaseClient";
+import fetchRanking from "./fetchRanking";
 
 const SIZE = 4;
 const getInitialGrid = () => {
@@ -35,6 +38,27 @@ const isGameOver = (grid) => {
   return true;
 };
 
+const AdBanner = () => {
+  useEffect(() => {
+    try {
+      if (window.adsbygoogle && Array.isArray(window.adsbygoogle)) {
+        window.adsbygoogle.push({});
+      }
+    } catch (e) {
+      console.error("AdSense error:", e);
+    }
+  }, []);
+
+  return (
+    <ins className="adsbygoogle"
+      style={{ display: "block" }}
+      data-ad-client="ca-pub-6508965231698296"
+      data-ad-slot="9650293147"
+      data-ad-format="auto"
+      data-full-width-responsive="true"></ins>
+  );
+};
+
 const App = () => {
   const [grid, setGrid] = useState(getInitialGrid);
   const [score, setScore] = useState(0);
@@ -44,6 +68,8 @@ const App = () => {
     return JSON.parse(localStorage.getItem("scoreHistory")) || [];
   });
   const [restartCount, setRestartCount] = useState(0);
+  const [nickname, setNickname] = useState("");
+  const [ranking, setRanking] = useState([]);
 
   let touchStartX = 0;
   let touchStartY = 0;
@@ -86,24 +112,32 @@ const App = () => {
       setGrid(newGrid);
       if (isGameOver(newGrid)) {
         setIsOver(true);
+
         const newHistory = [...scoreHistory, score].sort((a, b) => b - a).slice(0, 5);
         setScoreHistory(newHistory);
         localStorage.setItem("scoreHistory", JSON.stringify(newHistory));
+
+        if (nickname.trim()) {
+          supabase.from("scores").insert([{ nickname, score }]);
+        }
       }
     }
   };
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = "smooth";
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("touchstart", handleTouchStart);
     window.addEventListener("touchend", handleTouchEnd);
+    fetchRanking().then(setRanking);
     return () => {
+      document.body.style.overflow = "auto";
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  });
+  }, []);
 
   const combineRow = (row) => {
     let scoreGained = 0;
@@ -180,36 +214,31 @@ const App = () => {
     setShowMain(true);
   };
 
-  const getTileStyle = (value) => {
-    const tileColors = {
-      2: "#eee4da",
-      4: "#f3e6b2",
-      8: "#f2b179",
-      16: "#f59563",
-      32: "#f67c5f",
-      64: "#f65e3b",
-      128: "#edcf72",
-      256: "#edcc61",
-      512: "#edc850",
-      1024: "#edc53f",
-      2048: "#edc22e"
-    };
-    return {
-      background: tileColors[value] || "#cdc1b4"
-    };
-  };
-
   if (showMain) {
     return (
       <div className="game-container">
         <h1>2048 Game</h1>
+        <AdBlock slot="7685279248" />
+
+        <input
+          type="text"
+          placeholder="닉네임 입력"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          maxLength={20}
+          style={{ marginBottom: "10px", padding: "5px" }}
+        />
+
         <button onClick={startGame}>Start Game</button>
+
         <h2>Top Scores</h2>
         <ul>
-          {scoreHistory.map((s, i) => (
-            <li key={i}>#{i + 1}: {s}</li>
+          {ranking.map((entry, i) => (
+            <li key={i}>#{i + 1}: {entry.nickname} - {entry.score}</li>
           ))}
         </ul>
+
+        <AdBanner />
       </div>
     );
   }
@@ -219,10 +248,11 @@ const App = () => {
       <h1>2048 Game</h1>
       <div className="score">Score: {score}</div>
       <div className="grid">
+        <AdBlock slot="1914077817" />
         {grid.map((row, rowIndex) => (
           <div className="row" key={rowIndex}>
             {row.map((cell, colIndex) => (
-              <div className="cell" key={colIndex} style={getTileStyle(cell)}>
+              <div className="cell" key={colIndex}>
                 {cell !== 0 ? cell : ""}
               </div>
             ))}
@@ -234,6 +264,7 @@ const App = () => {
           <>
             <button onClick={startGame}>Restart</button>
             <button onClick={goToMain} style={{ marginLeft: '10px' }}>Main</button>
+            <AdBlock slot="9650293147" />
           </>
         )}
         {isOver && (
@@ -244,6 +275,7 @@ const App = () => {
           </div>
         )}
       </div>
+      <AdBanner />
     </div>
   );
 };
