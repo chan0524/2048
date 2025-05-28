@@ -1,7 +1,6 @@
 // React 2048 Game (AdSense Web 적용)
 import React, { useEffect, useState } from "react";
 import "./App.css";
-import AdBlock from "./components/AdBlock";
 
 const SIZE = 4;
 const getInitialGrid = () => {
@@ -34,27 +33,6 @@ const isGameOver = (grid) => {
     }
   }
   return true;
-};
-
-const AdBanner = () => {
-  useEffect(() => {
-    try {
-      if (window.adsbygoogle && Array.isArray(window.adsbygoogle)) {
-        window.adsbygoogle.push({});
-      }
-    } catch (e) {
-      console.error("AdSense error:", e);
-    }
-  }, []);
-
-  return (
-    <ins className="adsbygoogle"
-      style={{ display: "block" }}
-      data-ad-client="ca-pub-6508965231698296"
-      data-ad-slot="9650293147"
-      data-ad-format="auto"
-      data-full-width-responsive="true"></ins>
-  );
 };
 
 const App = () => {
@@ -117,12 +95,10 @@ const App = () => {
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = "smooth";
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("touchstart", handleTouchStart);
     window.addEventListener("touchend", handleTouchEnd);
     return () => {
-      document.body.style.overflow = "auto";
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchend", handleTouchEnd);
@@ -204,11 +180,29 @@ const App = () => {
     setShowMain(true);
   };
 
+  const getTileStyle = (value) => {
+    const tileColors = {
+      2: "#eee4da",
+      4: "#f3e6b2",
+      8: "#f2b179",
+      16: "#f59563",
+      32: "#f67c5f",
+      64: "#f65e3b",
+      128: "#edcf72",
+      256: "#edcc61",
+      512: "#edc850",
+      1024: "#edc53f",
+      2048: "#edc22e"
+    };
+    return {
+      background: tileColors[value] || "#cdc1b4"
+    };
+  };
+
   if (showMain) {
     return (
       <div className="game-container">
         <h1>2048 Game</h1>
-        <AdBlock slot="7685279248" />
         <button onClick={startGame}>Start Game</button>
         <h2>Top Scores</h2>
         <ul>
@@ -216,7 +210,6 @@ const App = () => {
             <li key={i}>#{i + 1}: {s}</li>
           ))}
         </ul>
-        <AdBanner />
       </div>
     );
   }
@@ -226,11 +219,10 @@ const App = () => {
       <h1>2048 Game</h1>
       <div className="score">Score: {score}</div>
       <div className="grid">
-        <AdBlock slot="1914077817" />
         {grid.map((row, rowIndex) => (
           <div className="row" key={rowIndex}>
             {row.map((cell, colIndex) => (
-              <div className="cell" key={colIndex}>
+              <div className="cell" key={colIndex} style={getTileStyle(cell)}>
                 {cell !== 0 ? cell : ""}
               </div>
             ))}
@@ -242,7 +234,6 @@ const App = () => {
           <>
             <button onClick={startGame}>Restart</button>
             <button onClick={goToMain} style={{ marginLeft: '10px' }}>Main</button>
-            <AdBlock slot="9650293147" />
           </>
         )}
         {isOver && (
@@ -253,7 +244,6 @@ const App = () => {
           </div>
         )}
       </div>
-      <AdBanner />
     </div>
   );
 };
