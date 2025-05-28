@@ -1,4 +1,3 @@
-// src/scores.js
 import supabase from './supabaseClient';
 
 export const submitScore = async (nickname, score) => {

@@ -1,4 +1,3 @@
-// src/fetchRanking.js
 import supabase from './supabaseClient';
 
 export const fetchRanking = async () => {
