@@ -1,5 +1,4 @@
-// App.jsx
-import React from "react";
+import React from "react"; // ✅ 이거 하나만
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import Game from "./components/Game";
@@ -16,6 +15,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 // components/Home.jsx
