@@ -1,4 +1,4 @@
-import React from "react"; // ✅ 이거 하나만
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import Game from "./components/Game";
@@ -15,10 +15,6 @@ const App = () => {
 };
 
 export default App;
-
-
-
-// components/Home.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRanking } from "../fetchRanking";
@@ -62,9 +58,6 @@ const Home = () => {
 };
 
 export default Home;
-
-
-// components/Game.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../dbClient";
@@ -122,11 +115,15 @@ const Game = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const nickname = location.state?.nickname || "";
-
   const [grid, setGrid] = useState(getInitialGrid);
   const [score, setScore] = useState(0);
   const [isOver, setIsOver] = useState(false);
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    // 자동 포커스 (방향키 문제 해결)
+    containerRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -139,7 +136,7 @@ const Game = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [isOver]);
+  }, [grid, isOver]);
 
   const move = (direction) => {
     let newGrid = cloneGrid(grid);
@@ -188,7 +185,9 @@ const Game = () => {
       if (isGameOver(newGrid)) {
         setIsOver(true);
         if (nickname.trim()) {
-          supabase.from("scores").insert([{ nickname, score }]);
+          supabase.from("scores").insert([{ nickname, score }]).then(() => {
+            console.log("Score saved");
+          });
         }
       }
     }
@@ -201,7 +200,12 @@ const Game = () => {
   };
 
   return (
-    <div className="game-container" ref={containerRef} tabIndex={0}>
+    <div
+      className="game-container"
+      ref={containerRef}
+      tabIndex={0}
+      style={{ outline: "none" }} // 포커스 표시 제거
+    >
       <h1>2048 Game</h1>
       <div className="score">Score: {score}</div>
       <div className="grid">
