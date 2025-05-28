@@ -1,9 +1,73 @@
-// React 2048 Game (정상 동작 복원 버전)
-import React, { useEffect, useState } from "react";
-import "./App.css";
-import AdBlock from "./components/AdBlock";
-import supabase from './dbClient';
-import { fetchRanking } from './fetchRanking';
+// App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./components/Home";
+import Game from "./components/Game";
+
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/game" element={<Game />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
+
+
+// components/Home.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchRanking } from "../fetchRanking";
+
+const Home = () => {
+  const [nickname, setNickname] = useState("");
+  const [ranking, setRanking] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchRanking().then(setRanking);
+  }, []);
+
+  const handleStart = () => {
+    if (nickname.trim()) {
+      navigate("/game", { state: { nickname } });
+    } else {
+      alert("닉네임을 입력해주세요!");
+    }
+  };
+
+  return (
+    <div className="home">
+      <h1>2048 게임</h1>
+      <input
+        type="text"
+        placeholder="닉네임"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+      />
+      <button onClick={handleStart}>게임 시작</button>
+
+      <h2>🏆 랭킹</h2>
+      <ol>
+        {ranking.map((r, i) => (
+          <li key={i}>{r.nickname} - {r.score}</li>
+        ))}
+      </ol>
+    </div>
+  );
+};
+
+export default Home;
+
+
+// components/Game.jsx
+import React, { useEffect, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import supabase from "../dbClient";
 
 const SIZE = 4;
 
@@ -54,12 +118,15 @@ const combine = (arr) => {
   return { combined: newArr, scoreGained };
 };
 
-const App = () => {
+const Game = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const nickname = location.state?.nickname || "";
+
   const [grid, setGrid] = useState(getInitialGrid);
   const [score, setScore] = useState(0);
   const [isOver, setIsOver] = useState(false);
-  const [nickname, setNickname] = useState("");
-  const [ranking, setRanking] = useState([]);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -71,9 +138,8 @@ const App = () => {
       }
     };
     window.addEventListener("keydown", handleKey);
-    fetchRanking().then(setRanking);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [grid, isOver]);
+  }, [isOver]);
 
   const move = (direction) => {
     let newGrid = cloneGrid(grid);
@@ -128,16 +194,15 @@ const App = () => {
     }
   };
 
+  const restartGame = () => {
+    setGrid(getInitialGrid());
+    setScore(0);
+    setIsOver(false);
+  };
+
   return (
-    <div className="game-container">
+    <div className="game-container" ref={containerRef} tabIndex={0}>
       <h1>2048 Game</h1>
-      <input
-        type="text"
-        placeholder="닉네임"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        style={{ marginBottom: 10 }}
-      />
       <div className="score">Score: {score}</div>
       <div className="grid">
         {grid.map((row, i) => (
@@ -149,8 +214,12 @@ const App = () => {
         ))}
       </div>
       {isOver && <h2>Game Over</h2>}
+      <div style={{ marginTop: 20 }}>
+        <button onClick={restartGame}>다시 시작</button>
+        <button onClick={() => navigate("/")}>메인으로</button>
+      </div>
     </div>
   );
 };
 
-export default App;
+export default Game;
